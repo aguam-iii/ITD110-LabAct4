@@ -1,0 +1,326 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background-color: #f7f8fa;
+    color: #2d2d2d;
+    line-height: 1.6;
+}
+
+/* ---- Header — SDG 7 yellow-gold theme ---- */
+header {
+    background: #fcc30b;
+    color: #1a1a1a;
+    padding: 24px 0;
+    border-bottom: 4px solid #e0aa00;
+}
+
+.header-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.sdg-badge {
+    background: #1a1a1a;
+    color: #fcc30b;
+    font-weight: 700;
+    font-size: 18px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.subtitle {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+/* ---- Layout ---- */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+}
+
+/* ---- Sections ---- */
+.section {
+    background: #fff;
+    border: 1px solid #e2e4e8;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+.section h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #fcc30b;
+    padding-bottom: 8px;
+}
+
+.section-desc {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 14px;
+}
+
+/* ---- Buttons ---- */
+.btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-primary {
+    background: #fcc30b;
+    color: #1a1a1a;
+}
+
+.btn-primary:hover {
+    background: #e0aa00;
+}
+
+.btn-secondary {
+    background: #e2e4e8;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #d0d2d6;
+}
+
+.btn-import {
+    background: #1a1a1a;
+    color: #fcc30b;
+}
+
+.btn-import:hover {
+    background: #333;
+}
+
+.btn-import:disabled {
+    background: #999;
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+/* ---- Import ---- */
+.import-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.import-row input[type="file"] {
+    flex: 1;
+    font-size: 13px;
+}
+
+.status {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.status.error {
+    background: #fce4e4;
+    color: #c0392b;
+    border: 1px solid #f5c6cb;
+}
+
+/* ---- Form ---- */
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-group {
+    flex: 1;
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d0d2d6;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.form-group input:focus {
+    border-color: #fcc30b;
+    box-shadow: 0 0 0 2px rgba(252, 195, 11, 0.2);
+}
+
+.form-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ---- Filter ---- */
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.filter-row label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    white-space: nowrap;
+}
+
+#region-select {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #d0d2d6;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+}
+
+#region-select:focus {
+    border-color: #fcc30b;
+}
+
+/* ---- Table ---- */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 13px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+th {
+    background: #1a1a1a;
+    color: #fcc30b;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+tr:hover {
+    background: #fffbe6;
+}
+
+.btn-edit,
+.btn-delete {
+    padding: 4px 10px;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-edit {
+    background: #fcc30b;
+    color: #1a1a1a;
+    margin-right: 4px;
+}
+
+.btn-edit:hover {
+    background: #e0aa00;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-delete:hover {
+    background: #c0392b;
+}
+
+.no-data {
+    text-align: center;
+    color: #999;
+    padding: 24px;
+    font-size: 14px;
+}
+
+/* ---- Footer ---- */
+footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e4e8;
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+}
+
+footer p {
+    margin-bottom: 2px;
+}
+
+/* ---- Utilities ---- */
+.hidden {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .import-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+}
