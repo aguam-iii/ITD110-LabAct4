@@ -198,20 +198,27 @@ h1 {
 /* ---- Filter ---- */
 .filter-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 14px;
 }
 
-.filter-row label {
+.filter-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 6px;
     font-size: 13px;
     font-weight: 600;
     color: #444;
-    white-space: nowrap;
 }
 
-#region-select {
-    flex: 1;
+.filter-group select,
+.filter-group input {
+    width: 100%;
     padding: 8px 10px;
     border: 1px solid #d0d2d6;
     border-radius: 4px;
@@ -219,11 +226,68 @@ h1 {
     outline: none;
 }
 
-#region-select:focus {
+.filter-group select:focus,
+.filter-group input:focus {
     border-color: #fcc30b;
+    box-shadow: 0 0 0 2px rgba(252, 195, 11, 0.16);
+}
+
+.filter-actions {
+    display: flex;
+    align-items: flex-end;
+    min-width: 170px;
+}
+
+#clear-filters-btn {
+    width: 100%;
 }
 
 /* ---- Table ---- */
+.data-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.main-data,
+.philippines-panel {
+    min-width: 0;
+}
+
+.philippines-panel {
+    background: #fff;
+    border: 1px solid #e2e4e8;
+    border-radius: 6px;
+    padding: 20px 24px;
+}
+
+.philippines-panel h3 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    font-size: 16px;
+    color: #1a1a1a;
+}
+
+.philippines-panel p {
+    margin: 0 0 12px;
+    color: #555;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.philippines-scrollbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 14px;
+    margin-bottom: 12px;
+}
+
+.philippines-scrollbar .scroll-spacer {
+    width: 100%;
+    height: 1px;
+}
+
 .table-wrapper {
     overflow-x: auto;
 }
@@ -324,3 +388,9 @@ footer p {
         text-align: center;
     }
 }
+@media (max-width: 900px) {
+    .data-layout {
+        flex-direction: column;
+    }
+}
+

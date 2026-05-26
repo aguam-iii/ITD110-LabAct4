@@ -117,6 +117,72 @@ const getRegions = async (req, res) => {
     }
 };
 
+const mapRows = (rows) => rows.map((r) => ({
+    region: r.region,
+    gender: r.gender || 'All sexes',
+    education_level: r.education_level || 'All levels',
+    year: r.year,
+    percentage: r.percentage,
+}));
+
+// Get all data points with optional filters
+const getAll = async (req, res) => {
+    try {
+        const {
+            region,
+            gender,
+            education_level,
+            year,
+            min_percentage,
+            max_percentage,
+        } = req.query;
+
+        const queryParts = [];
+        const params = [];
+
+        if (region && region.trim()) {
+            queryParts.push('region = ?');
+            params.push(region.trim());
+        }
+        if (gender && gender.trim()) {
+            queryParts.push('gender = ?');
+            params.push(gender.trim());
+        }
+        if (education_level && education_level.trim()) {
+            queryParts.push('education_level = ?');
+            params.push(education_level.trim());
+        }
+        if (year && !Number.isNaN(parseInt(year, 10))) {
+            queryParts.push('year = ?');
+            params.push(parseInt(year, 10));
+        }
+
+        let cql = `SELECT * FROM ${TABLE_NAME}`;
+        if (queryParts.length > 0) {
+            cql += ` WHERE ${queryParts.join(' AND ')}`;
+            if (!region || !region.trim() || queryParts.length > 1) {
+                cql += ' ALLOW FILTERING';
+            }
+        }
+
+        const result = await client.execute(cql, params, { prepare: true });
+        let rows = mapRows(result.rows);
+
+        const minValue = parseFloat(min_percentage);
+        const maxValue = parseFloat(max_percentage);
+        if (!Number.isNaN(minValue)) {
+            rows = rows.filter((row) => row.percentage >= minValue);
+        }
+        if (!Number.isNaN(maxValue)) {
+            rows = rows.filter((row) => row.percentage <= maxValue);
+        }
+
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Get all data points for a region (newest year first)
 const getByRegion = async (req, res) => {
     try {
@@ -126,13 +192,7 @@ const getByRegion = async (req, res) => {
             [region],
             { prepare: true }
         );
-        const data = result.rows.map((r) => ({
-            region: r.region,
-            gender: r.gender || 'All sexes',
-            education_level: r.education_level || 'All levels',
-            year: r.year,
-            percentage: r.percentage,
-        }));
+        const data = mapRows(result.rows);
         res.json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -264,4 +324,4 @@ const deleteOne = async (req, res) => {
     }
 };
 
-module.exports = { importDataset, getRegions, getByRegion, getOne, createOne, updateOne, deleteOne };
+module.exports = { importDataset, getRegions, getAll, getByRegion, getOne, createOne, updateOne, deleteOne };

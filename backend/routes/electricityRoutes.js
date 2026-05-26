@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     importDataset,
     getRegions,
+    getAll,
     getByRegion,
     getOne,
     createOne,
@@ -15,6 +16,9 @@ router.post('/import', importDataset);
 
 // GET /api/electricity/regions — list all distinct regions
 router.get('/regions', getRegions);
+
+// GET /api/electricity — list all data points, with optional filter query params
+router.get('/', getAll);
 
 // POST /api/electricity — create a single data point
 router.post('/', createOne);
