@@ -52,16 +52,9 @@ clearFiltersBtn.addEventListener('click', () => {
     renderFilteredRows();
 });
 
-// Enforce year bounds in the UI (clamp to 2000-2023)
+// Year filter input
 if (yearFilter) {
-    yearFilter.addEventListener('input', function () {
-        if (this.value === '') return renderFilteredRows();
-        const v = parseInt(this.value, 10);
-        if (Number.isNaN(v)) return;
-        if (v < 2000) this.value = '2000';
-        if (v > 2023) this.value = '2023';
-        renderFilteredRows();
-    });
+    yearFilter.addEventListener('input', renderFilteredRows);
 }
 
 if (philippinesScrollbar && philippinesTableWrapper) {
@@ -115,16 +108,27 @@ async function loadRegions() {
     try {
         const res = await fetch(`${API_URL}/regions`);
         const regions = await res.json();
-        regionSelect.innerHTML = '<option value="">-- All Regions --</option>';
-        regions
+        const filteredRegions = regions
             .filter((r) => r && r.toString().trim().toLowerCase() !== 'philippines')
-            .sort((a, b) => a.toString().localeCompare(b.toString()))
-            .forEach((r) => {
-                const opt = document.createElement('option');
-                opt.value = r;
-                opt.textContent = r;
-                regionSelect.appendChild(opt);
-            });
+            .sort((a, b) => a.toString().localeCompare(b.toString()));
+        
+        // Populate filter dropdown
+        regionSelect.innerHTML = '<option value="">-- All Regions --</option>';
+        filteredRegions.forEach((r) => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            regionSelect.appendChild(opt);
+        });
+        
+        // Populate form dropdown with exact same regions
+        regionInput.innerHTML = '<option value="">-- Select a Region --</option>';
+        filteredRegions.forEach((r) => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            regionInput.appendChild(opt);
+        });
     } catch {
         // ignore
     }
@@ -246,6 +250,7 @@ function escapeAttr(text) {
     return safeText.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
+
 // ---- CRUD Form ----
 dataForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -332,6 +337,7 @@ cancelBtn.addEventListener('click', resetForm);
 
 function resetForm() {
     dataForm.reset();
+    regionInput.value = '';
     editOriginalRegion.value = '';
     editOriginalYear.value = '';
     editOriginalGender.value = '';
