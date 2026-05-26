@@ -1,6 +1,19 @@
 const { client } = require('../config/db');
+const TABLE_NAME = 'completion_by_region';
 
-// Parse the semicolon-delimited CSV and bulk-insert into Cassandra
+const normalizeValue = (value) =>
+    value && value.toString().replace(/"/g, '').trim();
+
+const parseCsvRow = (line) => line.split(',').map((c) => normalizeValue(c));
+
+const sanitizeCategory = (value, fallback) => {
+    const normalized = normalizeValue(value);
+    return normalized ? normalized : fallback;
+};
+
+const isYearCell = (value) => /^\d{4}$/.test(value);
+
+// Parse the CSV and bulk-insert into Cassandra
 const importDataset = async (req, res) => {
     try {
         const { csv } = req.body;
@@ -8,42 +21,79 @@ const importDataset = async (req, res) => {
             return res.status(400).json({ message: 'CSV data is required' });
         }
 
-        const lines = csv.split('\n').filter((l) => l.trim());
-
-        // First line is the title, second line is headers
-        if (lines.length < 3) {
-            return res.status(400).json({ message: 'CSV must have a header row and at least one data row' });
+        const lines = csv.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length < 4) {
+            return res.status(400).json({ message: 'CSV must include a year header line and at least one data row.' });
         }
 
-        // Parse header to get years
-        const headerCols = lines[1].split(';').map((c) => c.replace(/"/g, '').trim());
-        // headerCols: [Sub-indicator, Geolocation, 2000, 2001, ..., 2025]
-        const years = headerCols.slice(2).map(Number);
+        const yearRow = parseCsvRow(lines[2]);
+        const yearIndexes = yearRow
+            .map((col, index) => (isYearCell(col) ? index : -1))
+            .filter((index) => index >= 0);
 
+        if (yearIndexes.length === 0) {
+            return res.status(400).json({ message: 'CSV must include year columns in the third row.' });
+        }
+
+        const years = yearIndexes.map((index) => Number(yearRow[index]));
+
+        let currentRegion = '';
+        let currentEducation = '';
+        let currentGender = 'All sexes';
         let inserted = 0;
         const queries = [];
 
-        for (let i = 2; i < lines.length; i++) {
-            const cols = lines[i].split(';').map((c) => c.replace(/"/g, '').trim());
-            const region = cols[1].replace(/^\.\./, '').trim(); // remove leading dots
+        for (let i = 3; i < lines.length; i++) {
+            const cols = parseCsvRow(lines[i]);
+            if (cols.length < 4) continue;
+
+            const indicator = normalizeValue(cols[0]);
+            const regionCell = normalizeValue(cols[1]);
+            const educationCell = normalizeValue(cols[2]);
+            const genderCell = normalizeValue(cols[3]);
+
+            if (regionCell) {
+                currentRegion = regionCell.replace(/^\.\./, '').trim();
+            }
+
+            if (educationCell) {
+                currentEducation = educationCell.trim();
+            }
+
+            if (genderCell) {
+                currentGender = genderCell.trim();
+            }
+
+            // Stop parsing when we reach footer metadata
+            if (indicator?.toLowerCase().startsWith('indicator:') || indicator?.toLowerCase().startsWith('latest update:') || indicator?.toLowerCase().startsWith('source:')) {
+                break;
+            }
+
+            if (!currentRegion || !currentEducation || !currentGender) {
+                continue;
+            }
 
             for (let j = 0; j < years.length; j++) {
-                const val = cols[j + 2];
-                // Skip missing data markers: "..", "...", empty
+                const val = cols[yearIndexes[j]];
                 if (!val || val === '..' || val === '...') continue;
 
                 const percentage = parseFloat(val);
-                if (isNaN(percentage)) continue;
+                if (Number.isNaN(percentage)) continue;
 
                 queries.push({
-                    query: `INSERT INTO electricity_by_region (region, year, percentage) VALUES (?, ?, ?)`,
-                    params: [region, years[j], percentage],
+                    query: `INSERT INTO ${TABLE_NAME} (region, gender, education_level, year, percentage) VALUES (?, ?, ?, ?, ?)`,
+                    params: [
+                        currentRegion,
+                        sanitizeCategory(currentGender, 'All sexes'),
+                        sanitizeCategory(currentEducation, 'All levels'),
+                        years[j],
+                        percentage,
+                    ],
                 });
                 inserted++;
             }
         }
 
-        // Execute in batches of 30 (Cassandra batch size limit)
         const BATCH_SIZE = 30;
         for (let i = 0; i < queries.length; i += BATCH_SIZE) {
             const batch = queries.slice(i, i + BATCH_SIZE);
@@ -59,7 +109,7 @@ const importDataset = async (req, res) => {
 // Get all regions (distinct partition keys)
 const getRegions = async (req, res) => {
     try {
-        const result = await client.execute('SELECT DISTINCT region FROM electricity_by_region');
+        const result = await client.execute(`SELECT DISTINCT region FROM ${TABLE_NAME}`);
         const regions = result.rows.map((r) => r.region).sort();
         res.json(regions);
     } catch (error) {
@@ -72,12 +122,14 @@ const getByRegion = async (req, res) => {
     try {
         const region = req.params.region.trim();
         const result = await client.execute(
-            'SELECT * FROM electricity_by_region WHERE region = ?',
+            `SELECT * FROM ${TABLE_NAME} WHERE region = ?`,
             [region],
             { prepare: true }
         );
         const data = result.rows.map((r) => ({
             region: r.region,
+            gender: r.gender || 'All sexes',
+            education_level: r.education_level || 'All levels',
             year: r.year,
             percentage: r.percentage,
         }));
@@ -87,20 +139,26 @@ const getByRegion = async (req, res) => {
     }
 };
 
-// Get a single data point
+// Get a single data point or all matching rows for a given region/year
 const getOne = async (req, res) => {
     try {
         const { region, year } = req.params;
         const result = await client.execute(
-            'SELECT * FROM electricity_by_region WHERE region = ? AND year = ?',
-            [region.trim(), parseInt(year)],
+            `SELECT * FROM ${TABLE_NAME} WHERE region = ? AND year = ? ALLOW FILTERING`,
+            [region.trim(), parseInt(year, 10)],
             { prepare: true }
         );
         if (result.rowLength === 0) {
             return res.status(404).json({ message: 'Data point not found' });
         }
-        const r = result.rows[0];
-        res.json({ region: r.region, year: r.year, percentage: r.percentage });
+        const data = result.rows.map((r) => ({
+            region: r.region,
+            gender: r.gender || 'All sexes',
+            education_level: r.education_level || 'All levels',
+            year: r.year,
+            percentage: r.percentage,
+        }));
+        res.json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -109,18 +167,30 @@ const getOne = async (req, res) => {
 // Create a new data point
 const createOne = async (req, res) => {
     try {
-        const { region, year, percentage } = req.body;
+        const { region, year, percentage, gender, education_level } = req.body;
         if (!region || year == null || percentage == null) {
             return res.status(400).json({ message: 'Region, year, and percentage are required' });
         }
 
         await client.execute(
-            'INSERT INTO electricity_by_region (region, year, percentage) VALUES (?, ?, ?)',
-            [region.trim(), parseInt(year), parseFloat(percentage)],
+            `INSERT INTO ${TABLE_NAME} (region, gender, education_level, year, percentage) VALUES (?, ?, ?, ?, ?)`,
+            [
+                region.trim(),
+                sanitizeCategory(gender, 'All sexes'),
+                sanitizeCategory(education_level, 'All levels'),
+                parseInt(year, 10),
+                parseFloat(percentage),
+            ],
             { prepare: true }
         );
 
-        res.status(201).json({ region: region.trim(), year: parseInt(year), percentage: parseFloat(percentage) });
+        res.status(201).json({
+            region: region.trim(),
+            gender: sanitizeCategory(gender, 'All sexes'),
+            education_level: sanitizeCategory(education_level, 'All levels'),
+            year: parseInt(year, 10),
+            percentage: parseFloat(percentage),
+        });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -130,15 +200,15 @@ const createOne = async (req, res) => {
 const updateOne = async (req, res) => {
     try {
         const { region, year } = req.params;
-        const { percentage } = req.body;
+        const { percentage, gender, education_level } = req.body;
 
-        if (percentage == null) {
-            return res.status(400).json({ message: 'Percentage is required' });
+        if (percentage == null || !gender || !education_level) {
+            return res.status(400).json({ message: 'Gender, education_level, and percentage are required for updates' });
         }
 
         const existing = await client.execute(
-            'SELECT * FROM electricity_by_region WHERE region = ? AND year = ?',
-            [region.trim(), parseInt(year)],
+            `SELECT * FROM ${TABLE_NAME} WHERE region = ? AND gender = ? AND education_level = ? AND year = ?`,
+            [region.trim(), gender, education_level, parseInt(year, 10)],
             { prepare: true }
         );
         if (existing.rowLength === 0) {
@@ -146,12 +216,18 @@ const updateOne = async (req, res) => {
         }
 
         await client.execute(
-            'UPDATE electricity_by_region SET percentage = ? WHERE region = ? AND year = ?',
-            [parseFloat(percentage), region.trim(), parseInt(year)],
+            `UPDATE ${TABLE_NAME} SET percentage = ? WHERE region = ? AND gender = ? AND education_level = ? AND year = ?`,
+            [parseFloat(percentage), region.trim(), gender, education_level, parseInt(year, 10)],
             { prepare: true }
         );
 
-        res.json({ region: region.trim(), year: parseInt(year), percentage: parseFloat(percentage) });
+        res.json({
+            region: region.trim(),
+            gender,
+            education_level,
+            year: parseInt(year, 10),
+            percentage: parseFloat(percentage),
+        });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -161,10 +237,15 @@ const updateOne = async (req, res) => {
 const deleteOne = async (req, res) => {
     try {
         const { region, year } = req.params;
+        const { gender, education_level } = req.query;
+
+        if (!gender || !education_level) {
+            return res.status(400).json({ message: 'Gender and education_level are required to delete a specific row' });
+        }
 
         const existing = await client.execute(
-            'SELECT * FROM electricity_by_region WHERE region = ? AND year = ?',
-            [region.trim(), parseInt(year)],
+            `SELECT * FROM ${TABLE_NAME} WHERE region = ? AND gender = ? AND education_level = ? AND year = ?`,
+            [region.trim(), gender, education_level, parseInt(year, 10)],
             { prepare: true }
         );
         if (existing.rowLength === 0) {
@@ -172,8 +253,8 @@ const deleteOne = async (req, res) => {
         }
 
         await client.execute(
-            'DELETE FROM electricity_by_region WHERE region = ? AND year = ?',
-            [region.trim(), parseInt(year)],
+            `DELETE FROM ${TABLE_NAME} WHERE region = ? AND gender = ? AND education_level = ? AND year = ?`,
+            [region.trim(), gender, education_level, parseInt(year, 10)],
             { prepare: true }
         );
 

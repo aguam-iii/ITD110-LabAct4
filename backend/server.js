@@ -14,7 +14,7 @@ app.use(express.json({ limit: '5mb' }));
 app.use('/api/electricity', electricityRoutes);
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Philippine Electricity Access API (Apache Cassandra)' });
+    res.json({ message: 'Philippine Education Completion API (Apache Cassandra)' });
 });
 
 const PORT = process.env.PORT || 3000;

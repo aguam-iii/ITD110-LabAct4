@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Philippine Electricity Access</title>
+    <title>Philippine Completion Rate of Primary & Secondary Education</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <header>
         <div class="header-content">
-            <div class="sdg-badge">SDG 7</div>
+            <div class="sdg-badge">SDG 4</div>
             <div>
-                <h1>Philippine Electricity Access</h1>
-                <p class="subtitle">Sustainable Development Goal 7 — Affordable and Clean Energy (Indicator 7.1.1)</p>
+                <h1>Philippine Completion Rate of Education</h1>
+                <p class="subtitle">Sustainable Development Goal 4 — Quality Education (Indicator 4.1.2)</p>
             </div>
         </div>
     </header>
@@ -22,7 +22,7 @@
         <!-- Import Section -->
         <section class="section">
             <h2>Import Dataset</h2>
-            <p class="section-desc">Upload the CSV file containing proportion of population with access to electricity.</p>
+            <p class="section-desc">Upload the CSV file containing completion rate data by gender and education level.</p>
             <div class="import-row">
                 <input type="file" id="csv-file" accept=".csv">
                 <button id="import-btn" class="btn btn-import">Import CSV</button>
@@ -36,17 +36,38 @@
             <form id="data-form">
                 <input type="hidden" id="edit-original-region">
                 <input type="hidden" id="edit-original-year">
+                <input type="hidden" id="edit-original-gender">
+                <input type="hidden" id="edit-original-education-level">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="region">Region</label>
                         <input type="text" id="region" placeholder="e.g. PHILIPPINES" required>
                     </div>
                     <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" required>
+                            <option value="All sexes">All sexes</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="education-level">Education Level</label>
+                        <select id="education-level" required>
+                            <option value="All levels">All levels</option>
+                            <option value="Elementary">Elementary</option>
+                            <option value="Junior high school">Junior high school</option>
+                            <option value="Senior high school">Senior high school</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
                         <label for="year">Year</label>
                         <input type="number" id="year" min="2000" max="2030" placeholder="e.g. 2023" required>
                     </div>
                     <div class="form-group">
-                        <label for="percentage">Access (%)</label>
+                        <label for="percentage">Completion Rate (%)</label>
                         <input type="number" id="percentage" step="0.1" min="0" max="120" placeholder="e.g. 92.7" required>
                     </div>
                 </div>
@@ -59,7 +80,7 @@
 
         <!-- Data Table -->
         <section class="section">
-            <h2>Electricity Access Data</h2>
+            <h2>Completion Rate Data</h2>
             <div class="filter-row">
                 <label for="region-select">Filter by Region</label>
                 <select id="region-select">
@@ -72,8 +93,10 @@
                     <thead>
                         <tr>
                             <th>Region</th>
+                            <th>Gender</th>
+                            <th>Education Level</th>
                             <th>Year</th>
-                            <th>Access (%)</th>
+                            <th>Completion Rate (%)</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -84,7 +107,7 @@
         </section>
 
         <footer>
-            <p>Data source: Philippine Statistics Authority — SDG Indicator 7.1.1</p>
+            <p>Data source: Philippine Statistics Authority — SDG Indicator 4.1.2</p>
             <p>Powered by Apache Cassandra</p>
         </footer>
     </div>

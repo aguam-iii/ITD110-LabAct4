@@ -2,7 +2,7 @@ const cassandra = require('cassandra-driver');
 
 const contactPoints = (process.env.CASSANDRA_CONTACT_POINTS || '127.0.0.1').split(',');
 const localDataCenter = process.env.CASSANDRA_DATACENTER || 'datacenter1';
-const keyspace = process.env.CASSANDRA_KEYSPACE || 'electricity';
+const keyspace = process.env.CASSANDRA_KEYSPACE || 'education';
 
 const bootstrapClient = new cassandra.Client({
     contactPoints,
@@ -26,14 +26,16 @@ const connectDB = async () => {
 
         await client.connect();
 
-        // Time-series table: one partition per region, rows ordered by year descending.
+        // Completion-rate table: one partition per region, rows ordered by gender, education level, and year.
         await client.execute(`
-            CREATE TABLE IF NOT EXISTS electricity_by_region (
+            CREATE TABLE IF NOT EXISTS completion_by_region (
                 region text,
+                gender text,
+                education_level text,
                 year int,
                 percentage double,
-                PRIMARY KEY ((region), year)
-            ) WITH CLUSTERING ORDER BY (year DESC)
+                PRIMARY KEY ((region), gender, education_level, year)
+            ) WITH CLUSTERING ORDER BY (gender ASC, education_level ASC, year DESC)
         `);
 
         console.log(`Cassandra Connected (keyspace: ${keyspace})`);

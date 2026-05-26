@@ -8,10 +8,14 @@ const formTitle = document.getElementById('form-title');
 const submitBtn = document.getElementById('submit-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 const regionInput = document.getElementById('region');
+const genderInput = document.getElementById('gender');
+const educationLevelInput = document.getElementById('education-level');
 const yearInput = document.getElementById('year');
 const percentageInput = document.getElementById('percentage');
 const editOriginalRegion = document.getElementById('edit-original-region');
 const editOriginalYear = document.getElementById('edit-original-year');
+const editOriginalGender = document.getElementById('edit-original-gender');
+const editOriginalEducationLevel = document.getElementById('edit-original-education-level');
 const regionSelect = document.getElementById('region-select');
 const dataTbody = document.getElementById('data-tbody');
 const noData = document.getElementById('no-data');
@@ -83,7 +87,6 @@ async function loadData() {
             const res = await fetch(`${API_URL}/${encodeURIComponent(selected)}`);
             rows = await res.json();
         } else {
-            // Load all regions' data
             const regRes = await fetch(`${API_URL}/regions`);
             const regions = await regRes.json();
             rows = [];
@@ -110,18 +113,24 @@ function renderTable(rows) {
 
     noData.classList.add('hidden');
 
-    // Sort: region asc, year desc
-    rows.sort((a, b) => a.region.localeCompare(b.region) || b.year - a.year);
+    rows.sort((a, b) =>
+        a.region.localeCompare(b.region) ||
+        a.gender.localeCompare(b.gender) ||
+        a.education_level.localeCompare(b.education_level) ||
+        b.year - a.year
+    );
 
     rows.forEach((r) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${escapeHtml(r.region)}</td>
+            <td>${escapeHtml(r.gender)}</td>
+            <td>${escapeHtml(r.education_level)}</td>
             <td>${r.year}</td>
             <td>${r.percentage.toFixed(1)}</td>
             <td>
-                <button class="btn-edit" onclick="editRow('${escapeAttr(r.region)}', ${r.year}, ${r.percentage})">Edit</button>
-                <button class="btn-delete" onclick="deleteRow('${escapeAttr(r.region)}', ${r.year})">Delete</button>
+                <button class="btn-edit" onclick="editRow('${escapeAttr(r.region)}', ${r.year}, '${escapeAttr(r.gender)}', '${escapeAttr(r.education_level)}', ${r.percentage})">Edit</button>
+                <button class="btn-delete" onclick="deleteRow('${escapeAttr(r.region)}', ${r.year}, '${escapeAttr(r.gender)}', '${escapeAttr(r.education_level)}')">Delete</button>
             </td>
         `;
         dataTbody.appendChild(tr);
@@ -130,12 +139,13 @@ function renderTable(rows) {
 
 function escapeHtml(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = text == null ? '' : text;
     return div.innerHTML;
 }
 
 function escapeAttr(text) {
-    return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    const safeText = text == null ? '' : text;
+    return safeText.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
 // ---- CRUD Form ----
@@ -143,34 +153,40 @@ dataForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const region = regionInput.value.trim();
-    const year = parseInt(yearInput.value);
+    const gender = genderInput.value;
+    const education_level = educationLevelInput.value;
+    const year = parseInt(yearInput.value, 10);
     const percentage = parseFloat(percentageInput.value);
 
     try {
         if (isEditing) {
             const origRegion = editOriginalRegion.value;
-            const origYear = parseInt(editOriginalYear.value);
+            const origYear = parseInt(editOriginalYear.value, 10);
+            const origGender = editOriginalGender.value;
+            const origEducationLevel = editOriginalEducationLevel.value;
 
-            // If region or year changed, delete old + create new (primary key changed)
-            if (origRegion !== region || origYear !== year) {
-                await fetch(`${API_URL}/${encodeURIComponent(origRegion)}/${origYear}`, { method: 'DELETE' });
+            if (origRegion !== region || origYear !== year || origGender !== gender || origEducationLevel !== education_level) {
+                await fetch(
+                    `${API_URL}/${encodeURIComponent(origRegion)}/${origYear}?gender=${encodeURIComponent(origGender)}&education_level=${encodeURIComponent(origEducationLevel)}`,
+                    { method: 'DELETE' }
+                );
                 await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ region, year, percentage }),
+                    body: JSON.stringify({ region, gender, education_level, year, percentage }),
                 });
             } else {
                 await fetch(`${API_URL}/${encodeURIComponent(region)}/${year}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ percentage }),
+                    body: JSON.stringify({ gender, education_level, percentage }),
                 });
             }
         } else {
             await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ region, year, percentage }),
+                body: JSON.stringify({ region, gender, education_level, year, percentage }),
             });
         }
 
@@ -182,7 +198,7 @@ dataForm.addEventListener('submit', async (e) => {
     }
 });
 
-function editRow(region, year, percentage) {
+function editRow(region, year, gender, educationLevel, percentage) {
     isEditing = true;
     formTitle.textContent = 'Edit Data Point';
     submitBtn.textContent = 'Update';
@@ -190,17 +206,24 @@ function editRow(region, year, percentage) {
 
     editOriginalRegion.value = region;
     editOriginalYear.value = year;
+    editOriginalGender.value = gender;
+    editOriginalEducationLevel.value = educationLevel;
     regionInput.value = region;
+    genderInput.value = gender;
+    educationLevelInput.value = educationLevel;
     yearInput.value = year;
     percentageInput.value = percentage;
     regionInput.focus();
 }
 
-async function deleteRow(region, year) {
-    if (!confirm(`Delete ${region} (${year})?`)) return;
+async function deleteRow(region, year, gender, educationLevel) {
+    if (!confirm(`Delete ${region} (${year}) ${gender} / ${educationLevel}?`)) return;
 
     try {
-        await fetch(`${API_URL}/${encodeURIComponent(region)}/${year}`, { method: 'DELETE' });
+        await fetch(
+            `${API_URL}/${encodeURIComponent(region)}/${year}?gender=${encodeURIComponent(gender)}&education_level=${encodeURIComponent(educationLevel)}`,
+            { method: 'DELETE' }
+        );
         loadData();
     } catch (err) {
         alert('Error: ' + err.message);
@@ -213,6 +236,8 @@ function resetForm() {
     dataForm.reset();
     editOriginalRegion.value = '';
     editOriginalYear.value = '';
+    editOriginalGender.value = '';
+    editOriginalEducationLevel.value = '';
     isEditing = false;
     formTitle.textContent = 'Add Data Point';
     submitBtn.textContent = 'Add';
