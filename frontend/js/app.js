@@ -29,6 +29,8 @@ const dataTbody = document.getElementById('data-tbody');
 const philippinesTbody = document.getElementById('philippines-tbody');
 const noData = document.getElementById('no-data');
 const philippinesNoData = document.getElementById('philippines-no-data');
+const mainTableScrollbar = document.getElementById('main-table-scrollbar');
+const mainTableWrapper = document.getElementById('main-table-wrapper');
 const philippinesScrollbar = document.getElementById('philippines-scrollbar');
 const philippinesTableWrapper = document.getElementById('philippines-table-wrapper');
 
@@ -55,6 +57,15 @@ clearFiltersBtn.addEventListener('click', () => {
 // Year filter input
 if (yearFilter) {
     yearFilter.addEventListener('input', renderFilteredRows);
+}
+
+if (mainTableScrollbar && mainTableWrapper) {
+    mainTableScrollbar.addEventListener('scroll', () => {
+        mainTableWrapper.scrollLeft = mainTableScrollbar.scrollLeft;
+    });
+    mainTableWrapper.addEventListener('scroll', () => {
+        mainTableScrollbar.scrollLeft = mainTableWrapper.scrollLeft;
+    });
 }
 
 if (philippinesScrollbar && philippinesTableWrapper) {
@@ -152,7 +163,16 @@ function renderFilteredRows() {
     const philippinesRows = applyFilters(allRows, { onlyPhilippines: true });
     renderTable(mainRows, dataTbody, noData, true);
     renderTable(philippinesRows, philippinesTbody, philippinesNoData, false, true);
+    updateMainTableScrollbar();
     updatePhilippinesScrollbar();
+}
+
+function updateMainTableScrollbar() {
+    if (!mainTableScrollbar || !mainTableWrapper) return;
+    const table = mainTableWrapper.querySelector('table');
+    const spacer = mainTableScrollbar.querySelector('.scroll-spacer');
+    if (!spacer || !table) return;
+    spacer.style.width = `${Math.max(table.scrollWidth, mainTableWrapper.clientWidth)}px`;
 }
 
 function updatePhilippinesScrollbar() {

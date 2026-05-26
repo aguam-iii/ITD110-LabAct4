@@ -12,17 +12,15 @@
             <div class="sdg-badge">SDG 4</div>
             <div>
                 <h1>Philippine Completion Rate of Education</h1>
-                <p class="subtitle">Sustainable Development Goal 4 — Quality Education (Indicator 4.1.2)</p>
+                <p class="subtitle">Gather insights on primary school and secondary school completion rates across all regions of the Philippines.</p>
             </div>
         </div>
     </header>
 
-    <div class="container">
-
         <!-- Import Section -->
         <section class="section">
             <h2>Import Dataset</h2>
-            <p class="section-desc">Upload the CSV file containing completion rate data by gender and education level.</p>
+            <p class="section-desc">Upload the CSV file containing completion rate data by gender, education level, and year.</p>
             <div class="import-row">
                 <input type="file" id="csv-file" accept=".csv">
                 <button id="import-btn" class="btn btn-import">Import CSV</button>
@@ -146,7 +144,10 @@
 
             <div class="data-layout">
                 <div class="main-data">
-                    <div class="table-wrapper">
+                    <div class="main-table-scrollbar" id="main-table-scrollbar">
+                        <div class="scroll-spacer"></div>
+                    </div>
+                    <div class="table-wrapper" id="main-table-wrapper">
                         <table>
                             <thead>
                                 <tr>
